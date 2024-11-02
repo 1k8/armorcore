@@ -8,7 +8,9 @@ let scene_cameras: camera_object_t[];
 let scene_speakers: speaker_object_t[];
 ///end
 let scene_empties: object_t[];
+///if arm_anim
 let scene_animations: anim_raw_t[];
+///end
 ///if arm_skin
 let scene_armatures: armature_t[];
 ///end
@@ -32,7 +34,9 @@ function scene_create(format: scene_t): object_t {
 	scene_speakers = [];
 	///end
 	scene_empties = [];
+	///if arm_anim
 	scene_animations = [];
+	///end
 	///if arm_skin
 	scene_armatures = [];
 	///end
@@ -48,7 +52,7 @@ function scene_create(format: scene_t): object_t {
 	// Startup scene
 	let scene_object: object_t = scene_add_scene(format.name, null);
 	if (scene_cameras.length == 0) {
-		krom_log("No camera found for scene '" + format.name + "'");
+		iron_log("No camera found for scene '" + format.name + "'");
 	}
 
 	scene_camera = scene_get_camera(format.camera_ref);
@@ -101,10 +105,12 @@ function scene_update_frame() {
 	if (!_scene_ready) {
 		return;
 	}
+	///if arm_anim
 	for (let i: i32 = 0; i < scene_animations.length; ++i) {
 		let anim: anim_raw_t = scene_animations[i];
 		anim_update(anim, time_delta());
 	}
+	///end
 	for (let i: i32 = 0; i < scene_empties.length; ++i) {
 		let e: object_t = scene_empties[i];
 		if (e != null && e.parent != null) {
@@ -376,7 +382,8 @@ function scene_create_mesh_object(o: obj_t, format: scene_t, parent: object_t, p
 			// Unique name if armature was already instantiated for different object
 			for (let j: i32 = 0; j < scene_armatures.length; ++j) {
 				let a: armature_t = scene_armatures[j];
-				if (a.name == parent.name) {
+				let aname: string = a.name;
+				if (aname == parent.name) {
 					parent.name += "." + parent.uid;
 					break;
 				}
@@ -417,6 +424,7 @@ function scene_return_mesh_object(object_file: string, data_ref: string, scene_n
 
 function scene_return_object(object: object_t, o: obj_t): object_t {
 	// Load object actions
+	///if arm_anim
 	if (object != null && o.anim != null && o.anim.object_actions != null) {
 		let oactions: scene_t[] = [];
 		while (oactions.length < o.anim.object_actions.length) {
@@ -434,8 +442,11 @@ function scene_return_object(object: object_t, o: obj_t): object_t {
 		return scene_return_object_loaded(object, o, oactions);
 	}
 	else {
+	///end
 		return scene_return_object_loaded(object, o, null);
+	///if arm_anim
 	}
+	///end
 }
 
 function scene_return_object_loaded(object: object_t, o: obj_t, oactions: scene_t[]): object_t {
@@ -444,14 +455,19 @@ function scene_return_object_loaded(object: object_t, o: obj_t, oactions: scene_
 		object.name = o.name;
 		object.visible = o.visible;
 		scene_gen_transform(o, object.transform);
+		///if arm_anim
 		object_setup_animation(object, oactions);
+		///end
 	}
 	return object;
 }
 
 function scene_gen_transform(object: obj_t, transform: transform_t) {
 	transform.world = object.transform != null ? mat4_from_f32_array(object.transform) : mat4_identity();
-	mat4_decompose(transform.world, transform.loc, transform.rot, transform.scale);
+	let dec: mat4_decomposed_t = mat4_decompose(transform.world);
+	transform.loc = dec.loc;
+	transform.rot = dec.rot;
+	transform.scale = dec.scl;
 	if (transform.object.parent != null) {
 		transform_update(transform);
 	}
@@ -471,7 +487,7 @@ function scene_embed_data(file: string) {
 	if (ends_with(file, ".raw")) {
 		let b: buffer_t = data_get_blob(file);
 		// Raw 3D texture bytes
-		let w: i32 = math_floor(math_pow(buffer_size(b), 1 / 3)) + 1;
+		let w: i32 = math_floor(math_pow(b.length, 1 / 3)) + 1;
 		let image: image_t = image_from_bytes_3d(b, w, w, w, tex_format_t.R8);
 		map_set(scene_embedded, file, image);
 	}
@@ -515,7 +531,7 @@ type mesh_data_runtime_t = {
 	vertex_buffer_map?: map_t<string, vertex_buffer_t>;
 	index_buffers?: index_buffer_t[];
 	ready?: bool;
-	vertices?: buffer_view_t;
+	vertices?: buffer_t;
 	indices?: u32_array_t[];
 	material_indices?: i32[];
 	structure?: vertex_struct_t;

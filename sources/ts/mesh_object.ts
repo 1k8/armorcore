@@ -19,6 +19,8 @@ type mesh_object_t = {
 };
 
 let _mesh_object_last_pipeline: pipeline_t = null;
+let _mesh_object_material_contexts: material_context_t[] = [];
+let _mesh_object_shader_contexts: shader_context_t[] = [];
 
 function mesh_object_create(data: mesh_data_t, materials: material_data_t[]): mesh_object_t {
 	let raw: mesh_object_t = {};
@@ -86,7 +88,9 @@ function mesh_object_setup_animation(raw: mesh_object_t, oactions: scene_t[] = n
 	}
 	///end
 
+	///if arm_anim
 	object_setup_animation_super(raw.base, oactions);
+	///end
 }
 
 ///if arm_particles
@@ -221,8 +225,10 @@ function mesh_object_render(raw: mesh_object_t, context: string, bind_params: st
 	}
 
 	// Get context
-	let material_contexts: material_context_t[] = [];
-	let shader_contexts: shader_context_t[] = [];
+	let material_contexts: material_context_t[] = _mesh_object_material_contexts;
+	let shader_contexts: shader_context_t[] = _mesh_object_shader_contexts;
+	material_contexts.length = 0;
+	shader_contexts.length = 0;
 	mesh_object_get_contexts(raw, context, raw.materials, material_contexts, shader_contexts);
 
 	uniforms_pos_unpack = raw.data.scale_pos;
@@ -258,7 +264,7 @@ function mesh_object_render(raw: mesh_object_t, context: string, bind_params: st
 		// VB / IB
 		if (raw.data._.instanced_vb != null) {
 			let vb: vertex_buffer_t = mesh_data_get(raw.data, elems);
-			let vbs: vertex_buffer_t[] = [vb, raw.data._.instanced_vb];
+			let vbs: vertex_buffer_t[] = [vb.buffer_, raw.data._.instanced_vb.buffer_];
 			g4_set_vertex_buffers(vbs);
 		}
 		else {
@@ -276,7 +282,7 @@ function mesh_object_render(raw: mesh_object_t, context: string, bind_params: st
 		}
 	}
 
-	mat4_set_from(raw.prev_matrix, raw.base.transform.world_unpack);
+	raw.prev_matrix = mat4_clone(raw.base.transform.world_unpack);
 }
 
 function mesh_object_valid_context(raw: mesh_object_t, mats: material_data_t[], context: string): bool {
@@ -291,7 +297,7 @@ function mesh_object_valid_context(raw: mesh_object_t, mats: material_data_t[], 
 
 function mesh_object_compute_camera_dist(raw: mesh_object_t, cam_x: f32, cam_y: f32, cam_z: f32) {
 	// Render path mesh sorting
-	raw.camera_dist = vec4_dist_f(cam_x, cam_y, cam_z, transform_world_x(raw.base.transform), transform_world_y(raw.base.transform), transform_world_z(raw.base.transform));
+	raw.camera_dist = vec4_fdist(cam_x, cam_y, cam_z, transform_world_x(raw.base.transform), transform_world_y(raw.base.transform), transform_world_z(raw.base.transform));
 }
 
 function mesh_object_compute_screen_size(raw: mesh_object_t, camera: camera_object_t) {

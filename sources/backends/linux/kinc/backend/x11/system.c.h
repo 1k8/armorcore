@@ -539,6 +539,7 @@ bool kinc_x11_handle_messages() {
 				KEY(XK_Control_L, KINC_KEY_CONTROL)
 				KEY(XK_Control_R, KINC_KEY_CONTROL)
 				KEY(XK_Alt_L, KINC_KEY_ALT)
+				KEY(XK_ISO_Prev_Group, KINC_KEY_ALT) //// XK_ISO_Prev_Group received instead of XK_Alt_L?
 				KEY(XK_Alt_R, KINC_KEY_ALT)
 				KEY(XK_Delete, KINC_KEY_DELETE)
 				KEY(XK_comma, KINC_KEY_COMMA)
@@ -973,7 +974,8 @@ void kinc_x11_mouse_set_cursor(int cursorIndex) {
 		Cursor cursor;
 		switch (cursorIndex) {
 		case 0: {
-			cursor = xlib.XcursorLibraryLoadCursor(x11_ctx.display, "arrow");
+			// cursor = xlib.XcursorLibraryLoadCursor(x11_ctx.display, "arrow");
+			cursor = xlib.XcursorLibraryLoadCursor(x11_ctx.display, "left_ptr");
 			break;
 		}
 		case 1: {

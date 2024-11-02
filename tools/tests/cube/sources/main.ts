@@ -63,7 +63,7 @@ function app_ready() {
 						name: "mesh",
 						bind_textures: [
 							{
-								name: "myTexture",
+								name: "my_texture",
 								file: "texture.k"
 							}
 						]
@@ -101,7 +101,7 @@ function app_ready() {
 						],
 						texture_units: [
 							{
-								name: "myTexture"
+								name: "my_texture"
 							}
 						]
 					}
@@ -119,8 +119,8 @@ function app_ready() {
 function scene_ready() {
 	// Set camera
 	let t: transform_t = scene_camera.base.transform;
-	vec4_set(t.loc, 0, -6, 0);
-	quat_from_to(t.rot, vec4_create(0, 0, 1), vec4_create(0, -1, 0));
+	t.loc = vec4_create(0, -6, 0);
+	t.rot = quat_from_to(vec4_create(0, 0, 1), vec4_create(0, -1, 0));
 	transform_build_matrix(t);
 
 	// Rotate cube

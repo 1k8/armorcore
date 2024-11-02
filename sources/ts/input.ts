@@ -128,7 +128,7 @@ function mouse_down_listener(index: i32, x: i32, y: i32) {
 	_mouse_buttons_started[index] = true;
 	mouse_x = x;
 	mouse_y = y;
-	///if (krom_android || krom_ios) // For movement delta using touch
+	///if (arm_android || arm_ios) // For movement delta using touch
 	if (index == 0) {
 		mouse_last_x = x;
 		mouse_last_y = y;
@@ -172,7 +172,7 @@ function mouse_wheel_listener(delta: i32) {
 	mouse_wheel_delta = delta;
 }
 
-///if (krom_android || krom_ios)
+///if (arm_android || arm_ios)
 function mouse_on_touch_down(index: i32, x: i32, y: i32) {
 	if (index == 1) { // Two fingers down - right mouse button
 		_mouse_buttons_down[0] = false;
@@ -280,13 +280,13 @@ function pen_down_listener(x: i32, y: i32, pressure: f32) {
 	pen_y = y;
 	pen_pressure = pressure;
 
-	///if (!krom_android && !krom_ios)
+	///if (!arm_android && !arm_ios)
 	mouse_down_listener(0, x, y);
 	///end
 }
 
 function pen_up_listener(x: i32, y: i32, pressure: f32) {
-	///if (!krom_android && !krom_ios)
+	///if (!arm_android && !arm_ios)
 	if (pen_buttons_started[0]) {
 		pen_buttons_started[0] = false;
 		pen_in_use = true;
@@ -300,14 +300,14 @@ function pen_up_listener(x: i32, y: i32, pressure: f32) {
 	pen_y = y;
 	pen_pressure = pressure;
 
-	///if (!krom_android && !krom_ios)
+	///if (!arm_android && !arm_ios)
 	mouse_up_listener(0, x, y);
 	pen_in_use = true; // On pen release, additional mouse down & up events are fired at once - filter those out
 	///end
 }
 
 function pen_move_listener(x: i32, y: i32, pressure: f32) {
-	///if krom_ios
+	///if arm_ios
 	// Listen to pen hover if no other input is active
 	if (!pen_buttons_down[0] && pressure == 0.0) {
 		if (!mouse_down_any()) {
@@ -417,7 +417,7 @@ function keyboard_key_code(key: key_code_t): string {
 	else if (key == key_code_t.CONTROL) {
 		return "control";
 	}
-	///if krom_macos
+	///if arm_macos
 	else if (key == key_code_t.META) {
 		return "control";
 	}
@@ -662,7 +662,7 @@ function keyboard_down_listener(code: key_code_t) {
 	map_set(keyboard_keys_down, s, true);
 	keyboard_repeat_time = time_time() + 0.4;
 
-	///if krom_android_rmb // Detect right mouse button on Android..
+	///if arm_android_rmb // Detect right mouse button on Android..
 	if (code == key_code_t.BACK) {
 		if (!_mouse_buttons_down[1]) {
 			mouse_down_listener(1, math_floor(mouse_x), math_floor(mouse_y));
@@ -677,7 +677,7 @@ function keyboard_up_listener(code: key_code_t) {
 	map_set(keyboard_keys_released, s, true);
 	map_set(keyboard_keys_down, s, false);
 
-	///if krom_android_rmb
+	///if arm_android_rmb
 	if (code == key_code_t.BACK) {
 		mouse_up_listener(1, math_floor(mouse_x), math_floor(mouse_y));
 	}
@@ -692,23 +692,24 @@ let gamepad_buttons: string[] = gamepad_buttons_ps;
 let gamepad_raws: gamepad_t[];
 
 function gamepad_end_frame() {
-	for (let i: i32 = 0; i < gamepad_raws.length; ++i) {
-		let g: gamepad_t = gamepad_raws[i];
-		if (g.buttons_frame.length > 0) {
-			for (let j: i32 = 0; j < g.buttons_frame.length; ++j) {
-				let b: i32 = g.buttons_frame[j];
-				g.buttons_started[b] = false;
-				g.buttons_released[b] = false;
-			}
-			array_splice(g.buttons_frame, 0, g.buttons_frame.length);
-		}
-		g.left_stick.moved = false;
-		g.left_stick.movement_x = 0;
-		g.left_stick.movement_y = 0;
-		g.right_stick.moved = false;
-		g.right_stick.movement_x = 0;
-		g.right_stick.movement_y = 0;
-	}
+	// TODO: check valgrind error
+	// for (let i: i32 = 0; i < gamepad_raws.length; ++i) {
+	// 	let g: gamepad_t = gamepad_raws[i];
+	// 	if (g.buttons_frame.length > 0) {
+	// 		for (let j: i32 = 0; j < g.buttons_frame.length; ++j) {
+	// 			let b: i32 = g.buttons_frame[j];
+	// 			g.buttons_started[b] = false;
+	// 			g.buttons_released[b] = false;
+	// 		}
+	// 		array_splice(g.buttons_frame, 0, g.buttons_frame.length);
+	// 	}
+	// 	g.left_stick.moved = false;
+	// 	g.left_stick.movement_x = 0;
+	// 	g.left_stick.movement_y = 0;
+	// 	g.right_stick.moved = false;
+	// 	g.right_stick.movement_x = 0;
+	// 	g.right_stick.movement_y = 0;
+	// }
 }
 
 function gamepad_stick_create(): gamepad_stick_t {
@@ -791,15 +792,15 @@ function gamepad_axis_listener(i: i32, axis: i32, value: f32) {
 }
 
 function gamepad_button_listener(i: i32, button: i32, value: f32) {
-	array_push(gamepad_raws[i].buttons_frame, button);
+	// array_push(gamepad_raws[i].buttons_frame, button);
 
-	gamepad_raws[i].buttons_down[button] = value;
-	if (value > 0) {
-		gamepad_raws[i].buttons_started[button] = true; // Will trigger L2/R2 multiple times..
-	}
-	else {
-		gamepad_raws[i].buttons_released[button] = true;
-	}
+	// gamepad_raws[i].buttons_down[button] = value;
+	// if (value > 0) {
+	// 	gamepad_raws[i].buttons_started[button] = true; // Will trigger L2/R2 multiple times..
+	// }
+	// else {
+	// 	gamepad_raws[i].buttons_released[button] = true;
+	// }
 }
 
 type gamepad_stick_t = {

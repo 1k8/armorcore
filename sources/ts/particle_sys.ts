@@ -99,7 +99,10 @@ function particle_sys_update(raw: particle_sys_t, object: mesh_object_t, owner: 
 	}
 
 	// Copy owner world transform but discard scale
-	mat4_decompose(owner.base.transform.world, raw.owner_loc, raw.owner_rot, raw.owner_scale);
+	let dec: mat4_decomposed_t = mat4_decompose(owner.base.transform.world);
+	raw.owner_loc = dec.loc;
+	raw.owner_rot = dec.rot;
+	raw.owner_scale = dec.scl;
 	object.base.transform.loc = raw.owner_loc;
 	object.base.transform.rot = raw.owner_rot;
 
@@ -108,7 +111,7 @@ function particle_sys_update(raw: particle_sys_t, object: mesh_object_t, owner: 
 
 	transform_build_matrix(object.base.transform);
 	transform_build_matrix(owner.base.transform);
-	vec4_set_from(object.base.transform.dim, owner.base.transform.dim);
+	object.base.transform.dim = vec4_clone(owner.base.transform.dim);
 
 	raw.dimx = object.base.transform.dim.x;
 	raw.dimy = object.base.transform.dim.y;
@@ -124,22 +127,22 @@ function particle_sys_update(raw: particle_sys_t, object: mesh_object_t, owner: 
 
 function particle_sys_get_data(raw: particle_sys_t): mat4_t {
 	let hair: bool = raw.r.type == 1;
-	raw.m.m[0] = raw.r.loop ? raw.animtime : -raw.animtime;
-	raw.m.m[1] = hair ? 1 / raw.particles.length : raw.spawn_rate;
-	raw.m.m[2] = hair ? 1 : raw.lifetime;
-	raw.m.m[3] = raw.particles.length;
-	raw.m.m[4] = hair ? 0 : raw.alignx;
-	raw.m.m[5] = hair ? 0 : raw.aligny;
-	raw.m.m[6] = hair ? 0 : raw.alignz;
-	raw.m.m[7] = hair ? 0 : raw.r.factor_random;
-	raw.m.m[8] = hair ? 0 : raw.gx * raw.r.mass;
-	raw.m.m[9] = hair ? 0 : raw.gy * raw.r.mass;
-	raw.m.m[10] = hair ? 0 : raw.gz * raw.r.mass;
-	raw.m.m[11] = hair ? 0 : raw.r.lifetime_random;
-	raw.m.m[12] = 1; // tilesx
-	raw.m.m[13] = 1; // tilesy
-	raw.m.m[14] = 1; // tilesframerate
-	raw.m.m[15] = hair ? 1 : raw.lap_time;
+	raw.m.m00 = raw.r.loop ? raw.animtime : -raw.animtime;
+	raw.m.m01 = hair ? 1 / raw.particles.length : raw.spawn_rate;
+	raw.m.m02 = hair ? 1 : raw.lifetime;
+	raw.m.m03 = raw.particles.length;
+	raw.m.m10 = hair ? 0 : raw.alignx;
+	raw.m.m11 = hair ? 0 : raw.aligny;
+	raw.m.m12 = hair ? 0 : raw.alignz;
+	raw.m.m13 = hair ? 0 : raw.r.factor_random;
+	raw.m.m20 = hair ? 0 : raw.gx * raw.r.mass;
+	raw.m.m21 = hair ? 0 : raw.gy * raw.r.mass;
+	raw.m.m22 = hair ? 0 : raw.gz * raw.r.mass;
+	raw.m.m23 = hair ? 0 : raw.r.lifetime_random;
+	raw.m.m30 = 1; // tilesx
+	raw.m.m31 = 1; // tilesy
+	raw.m.m32 = 1; // tilesframerate
+	raw.m.m33 = hair ? 1 : raw.lap_time;
 	return raw.m;
 }
 
@@ -162,8 +165,8 @@ function particle_sys_setup_geom(raw: particle_sys_t, object: mesh_object_t, own
 	let scale_pos_owner: f32 = owner.data.scale_pos;
 	let scale_pos_particle: f32 = object.data.scale_pos;
 	let particle_size: f32 = raw.r.particle_size;
-	let scale_fac: vec4_t = vec4_set_from(vec4_create(), owner.base.transform.scale);
-	vec4_mult(scale_fac, scale_pos_owner / (particle_size * scale_pos_particle));
+	let scale_fac: vec4_t = vec4_clone(owner.base.transform.scale);
+	scale_fac = vec4_mult(scale_fac, scale_pos_owner / (particle_size * scale_pos_particle));
 
 	if (raw.r.emit_from == 0) { // Vert
 		let pa: vertex_array_t = mesh_data_get_vertex_array(owner.data, "pos");
@@ -191,11 +194,11 @@ function particle_sys_setup_geom(raw: particle_sys_t, object: mesh_object_t, own
 			let i1: i32 = ia[face_index * 3 + 1];
 			let i2: i32 = ia[face_index * 3 + 2];
 
-			let v0: vec3_t = vec3_create(positions[i0 * 4], positions[i0 * 4 + 1], positions[i0 * 4 + 2]);
-			let v1: vec3_t = vec3_create(positions[i1 * 4], positions[i1 * 4 + 1], positions[i1 * 4 + 2]);
-			let v2: vec3_t = vec3_create(positions[i2 * 4], positions[i2 * 4 + 1], positions[i2 * 4 + 2]);
+			let v0: vec4_t = vec4_create(positions[i0 * 4], positions[i0 * 4 + 1], positions[i0 * 4 + 2]);
+			let v1: vec4_t = vec4_create(positions[i1 * 4], positions[i1 * 4 + 1], positions[i1 * 4 + 2]);
+			let v2: vec4_t = vec4_create(positions[i2 * 4], positions[i2 * 4 + 1], positions[i2 * 4 + 2]);
 
-			let pos: vec3_t = particle_sys_random_point_in_triangle(v0, v1, v2);
+			let pos: vec4_t = particle_sys_random_point_in_triangle(v0, v1, v2);
 
 			instanced_data[i] = pos.x * norm_fac * scale_fac.x;
 			i++;
@@ -206,8 +209,8 @@ function particle_sys_setup_geom(raw: particle_sys_t, object: mesh_object_t, own
 		}
 	}
 	else if (raw.r.emit_from == 2) { // Volume
-		let scale_factor_volume: vec4_t = vec4_set_from(vec4_create(), object.base.transform.dim);
-		vec4_mult(scale_factor_volume, 0.5 / (particle_size * scale_pos_particle));
+		let scale_factor_volume: vec4_t = vec4_clone(object.base.transform.dim);
+		scale_factor_volume = vec4_mult(scale_factor_volume, 0.5 / (particle_size * scale_pos_particle));
 
 		for (let x: i32 = 0; x < raw.particles.length; ++x) {
 			instanced_data[i] = (math_random() * 2.0 - 1.0) * scale_factor_volume.x;
@@ -231,7 +234,7 @@ function particle_sys_fhash(n: i32): f32 {
 
 function particle_sys_remove(raw: particle_sys_t) {}
 
-function particle_sys_random_point_in_triangle(a: vec3_t, b: vec3_t, c: vec3_t): vec3_t {
+function particle_sys_random_point_in_triangle(a: vec4_t, b: vec4_t, c: vec4_t): vec4_t {
 	// Generate a random point in a square where (0, 0) <= (x, y) < (1, 1)
 	let x: f32 = math_random();
 	let y: f32 = math_random();
@@ -243,9 +246,9 @@ function particle_sys_random_point_in_triangle(a: vec3_t, b: vec3_t, c: vec3_t):
 	}
 
 	// Transform the point to the triangle abc
-	let u: vec3_t = vec3_sub(b, a);
-	let v: vec3_t = vec3_sub(c, a);
-	return vec3_add(a, vec3_add(vec3_mult(u, x), vec3_mult(v, y)));
+	let u: vec4_t = vec4_sub(b, a);
+	let v: vec4_t = vec4_sub(c, a);
+	return vec4_add(a, vec4_add(vec4_mult(u, x), vec4_mult(v, y)));
 }
 
 ///end

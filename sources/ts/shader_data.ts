@@ -11,13 +11,13 @@ function shader_data_create(raw: shader_data_t): shader_data_t {
 }
 
 function shader_data_ext(): string {
-	///if krom_vulkan
+	///if arm_vulkan
 	return ".spirv";
-	///elseif (krom_android || krom_wasm)
+	///elseif (arm_android || arm_wasm)
 	return ".essl";
-	///elseif krom_opengl
+	///elseif arm_opengl
 	return ".glsl";
-	///elseif krom_metal
+	///elseif arm_metal
 	return ".metal";
 	///else
 	return ".d3d11";
@@ -28,7 +28,7 @@ function shader_data_parse(file: string, name: string): shader_data_t {
 	let format: scene_t = data_get_scene_raw(file);
 	let raw: shader_data_t = shader_data_get_raw_by_name(format.shader_datas, name);
 	if (raw == null) {
-		krom_log("Shader data '" + name + "' not found!");
+		iron_log("Shader data '" + name + "' not found!");
 		return null;
 	}
 	return shader_data_create(raw);
@@ -165,8 +165,14 @@ function shader_context_compile(raw: shader_context_t): shader_context_t {
 		}
 	}
 	else {
+		///if arm_embed
+		raw._.pipe_state.fragment_shader = sys_get_shader(raw.fragment_shader);
+		raw._.pipe_state.vertex_shader = sys_get_shader(raw.vertex_shader);
+		if (raw.geometry_shader != null) {
+			raw._.pipe_state.geometry_shader = sys_get_shader(raw.geometry_shader);
+		}
 
-		///if arm_noembed // Load shaders manually
+		///else // Load shaders manually
 
 		let vs_buffer: buffer_t = data_get_blob(raw.vertex_shader + shader_data_ext());
 		raw._.pipe_state.vertex_shader = g4_shader_create(vs_buffer, shader_type_t.VERTEX);
@@ -176,15 +182,6 @@ function shader_context_compile(raw: shader_context_t): shader_context_t {
 			let gs_buffer: buffer_t = data_get_blob(raw.geometry_shader + shader_data_ext());
 			raw._.pipe_state.geometry_shader = g4_shader_create(gs_buffer, shader_type_t.GEOMETRY);
 		}
-
-		///else
-
-		raw._.pipe_state.fragment_shader = sys_get_shader(raw.fragment_shader);
-		raw._.pipe_state.vertex_shader = sys_get_shader(raw.vertex_shader);
-		if (raw.geometry_shader != null) {
-			raw._.pipe_state.geometry_shader = sys_get_shader(raw.geometry_shader);
-		}
-
 		///end
 	}
 

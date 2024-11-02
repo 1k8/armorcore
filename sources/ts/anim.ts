@@ -1,4 +1,5 @@
 
+///if arm_anim
 
 type anim_raw_t = {
 	ext?: any; // anim_bone_t | anim_object_t
@@ -221,24 +222,24 @@ function anim_update_anim_sampled(raw: anim_raw_t, anim: anim_t, m: mat4_t) {
 	let t2: f32 = track.frames[ti + sign] * raw.frame_time;
 	let s: f32 = (t - t1) / (t2 - t1); // Linear
 
-	mat4_set_from_f32_array(_anim_m1, track.values, ti * 16); // Offset to 4x4 matrix array
-	mat4_set_from_f32_array(_anim_m2, track.values, (ti + sign) * 16);
+	_anim_m1 = mat4_from_f32_array(track.values, ti * 16); // Offset to 4x4 matrix array
+	_anim_m2 = mat4_from_f32_array(track.values, (ti + sign) * 16);
 
 	// Decompose
 	mat4_decompose(_anim_m1, _anim_vpos, _anim_q1, _anim_vscale);
 	mat4_decompose(_anim_m2, _anim_vpos2, _anim_q2, _anim_vscale2);
 
 	// Lerp
-	vec4_lerp(_anim_vp, _anim_vpos, _anim_vpos2, s);
-	vec4_lerp(_anim_vs, _anim_vscale, _anim_vscale2, s);
-	quat_lerp(_anim_q3, _anim_q1, _anim_q2, s);
+	_anim_vp = vec4_lerp(_anim_vpos, _anim_vpos2, s);
+	_anim_vs = vec4_lerp(_anim_vscale, _anim_vscale2, s);
+	_anim_q3 = quat_lerp(_anim_q1, _anim_q2, s);
 
 	// Compose
-	mat4_from_quat(m, _anim_q3);
-	mat4_scale(m, _anim_vs);
-	m.m[12] = _anim_vp.x;
-	m.m[13] = _anim_vp.y;
-	m.m[14] = _anim_vp.z;
+	m = mat4_from_quat(_anim_q3);
+	m = mat4_scale(m, _anim_vs);
+	m.m30 = _anim_vp.x;
+	m.m31 = _anim_vp.y;
+	m.m32 = _anim_vp.z;
 }
 
 function anim_set_frame(raw: anim_raw_t, frame: i32) {
@@ -270,3 +271,5 @@ function anim_current_frame(raw: anim_raw_t): i32 {
 function anim_total_frames(raw: anim_raw_t): i32 {
 	return 0;
 }
+
+///end
